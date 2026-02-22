@@ -1,57 +1,116 @@
-<<<<<<< HEAD
 # Brick Dodger
 
 A fast-paced Flutter game built with the Flame engine where you dodge falling bricks and collect power-ups to achieve the high score!
 
-## Features
+![Flutter](https://img.shields.io/badge/Flutter-3.x-blue?logo=flutter)
+![Flame Engine](https://img.shields.io/badge/Flame-1.x-orange?logo=flutter)
 
-- **Dynamic Gameplay**: Dodge falling bricks that increase in speed and frequency over time.
-- **Combo System**: Achieve 10 dodges in a row to increase your score multiplier.
+## 🎮 Features
+
+- **Dynamic Gameplay**: Dodge falling bricks that increase in speed and frequency over time
+- **Combo System**: Achieve 10 dodges in a row to increase your score multiplier
 - **Near Miss Bonus**: Extra points for dodging bricks just in time!
+- **Multiple Game Modes**: Choose your playstyle with different game modes
 - **Power-ups**:
-  - **Shield**: Protects you from one brick collision.
-  - **Slow-Mo**: Temporarily slows down time.
-  - **Shrink**: Makes the player smaller and harder to hit.
-- **Visual "Juice"**: Screen shake, particle trails, and leaning movement for a premium feel.
-- **Persistent High Scores**: Your best score is saved locally.
-- **Retro Aesthetic**: Custom 'Press Start 2P' font and scrolling ground texture.
+  - 🛡️ **Shield**: Protects you from one brick collision
+  - 🐌 **Slow-Mo**: Temporarily slows down time
+  - 📉 **Shrink**: Makes the player smaller and harder to hit
+- **Visual "Juice"**: Screen shake, particle trails, and leaning movement for a premium feel
+- **Persistent High Scores**: Your best score is saved locally
+- **Retro Aesthetic**: Custom 'Press Start 2P' font and scrolling ground texture
 
-## Project Structure
+## 📁 Project Structure
 
-- `lib/main.dart`: Entry point of the application.
-- `lib/game/`: Contains all game logic.
-  - `brick_dodger_game.dart`: The main game engine class.
-  - `components/`: Individual game entities.
-    - `player.dart`: Player character with movement and collision logic.
-    - `brick.dart`: Falling brick obstacles with particle trails.
-    - `power_up.dart`: Collectible items that grant temporary buffs.
-    - `ground.dart`: Scrolling background texture.
-    - `cloud.dart`: Decorative background elements.
-    - `floating_text.dart`: UI feedback for scores and combos.
+```
+lib/
+├── main.dart                    # Entry point
+├── game/
+│   ├── brick_dodger_game.dart   # Main game engine
+│   ├── components/
+│   │   ├── player.dart          # Player character
+│   │   ├── brick.dart           # Falling brick obstacles
+│   │   ├── safe_brick.dart      # Safe brick variants
+│   │   ├── lava.dart            # Lava hazard component
+│   │   ├── power_up.dart        # Collectible power-ups
+│   │   ├── stamina_bar.dart     # Stamina UI component
+│   │   ├── floating_text.dart   # Floating text effects
+│   │   └── ground.dart          # Scrolling background
+│   └── managers/
+│       └── storage_helper.dart  # Local data persistence
+└── overlays/
+    ├── main_menu_overlay.dart   # Main menu UI
+    └── mode_briefing_overlay.dart  # Game mode selection
+```
 
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
 
-- [Flutter SDK](https://docs.flutter.dev/get-started/install) installed on your machine.
-- An IDE (VS Code, Android Studio, etc.) with Flutter and Dart plugins.
+- [Flutter SDK](https://docs.flutter.dev/get-started/install) (3.x or higher)
+- An IDE (VS Code, Android Studio) with Flutter and Dart plugins
 
-### How to Run
+### Installation
 
-1.  **Clone or Download** the project.
-2.  Open the project in your terminal.
-3.  Run `flutter pub get` to install dependencies (Flame, Google Fonts, SharedPreferences).
-4.  Launch an emulator or connect a physical device.
-5.  Run the application with:
-    ```bash
-    flutter run
-    ```
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/NakhulGithesh/Brick-Dodger.git
+   cd Brick-Dodger
+   ```
 
-## Development
+2. Install dependencies:
+   ```bash
+   flutter pub get
+   ```
 
-The game is built using the **Flame Engine** for Flutter. Most game-related state and logic can be found in `lib/game/brick_dodger_game.dart`.
+3. Run the game:
+   ```bash
+   flutter run
+   ```
 
-=======
-# Brick-Dodger
-Brick Dodger is a high-octane 2D arcade game built with Flutter and Flame. Players control a character dodging randomly spawning bricks that fall at increasing speeds. Featuring smooth delta-time animations, power-ups like shields and slow-mo, and "near-miss" scoring, it blends addictive gameplay with polished visual "juice" for a premium feel.
->>>>>>> a1547d34203c5b301df53feef06939e0662d3ac3
+## 🎯 Controls
+
+- **Left/Right Arrow** or **A/D Keys**: Move the player
+- **Touch/Drag**: Mobile touch controls
+
+## 🏗️ Development
+
+The game is built using the **Flame Engine** for Flutter. Key files:
+
+| File | Description |
+|------|-------------|
+| `brick_dodger_game.dart` | Core game loop and state management |
+| `player.dart` | Player movement, collision, and stamina logic |
+| `brick.dart` | Brick spawning, falling, and particle effects |
+| `storage_helper.dart` | High score persistence with SharedPreferences |
+
+### Dependencies
+
+- `flame` - Game engine
+- `flame_audio` - Audio management
+- `google_fonts` - Typography
+- `shared_preferences` - Local storage
+
+## 📸 Screenshots
+
+_Add screenshots of gameplay here_
+
+## 🤝 Contributing
+
+Contributions are welcome! Feel free to:
+
+1. Fork the repository
+2. Create a feature branch
+3. Submit a pull request
+
+## 📄 License
+
+This project is open source and available under the [MIT License](LICENSE).
+
+## 🙏 Acknowledgments
+
+- Built with [Flame Engine](https://flame-engine.org/)
+- Font: [Press Start 2P](https://fonts.google.com/specimen/Press+Start+2P)
+
+---
+
+**Made with ❤️ using Flutter & Flame**
