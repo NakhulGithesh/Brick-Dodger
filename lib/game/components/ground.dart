@@ -1,79 +1,75 @@
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
+import 'dart:math';
 
-class Ground extends PositionComponent with HasGameRef {
-  late Paint _dirtPaint;
-  late Paint _grassPaint;
-  
-  double _scrollOffset = 0;
-  final double _speed = 100.0;
+import '../brick_dodger_game.dart';
+
+/// Pixel-art style ground with grass blades and dirt layers.
+class Ground extends PositionComponent with HasGameReference<BrickDodgerGame> {
+  late double _groundHeight;
+  final Random _random = Random(42); // Fixed seed for consistent grass
 
   @override
   Future<void> onLoad() async {
     super.onLoad();
-    
-    // Bottom 10% of the screen
-    size = Vector2(gameRef.size.x, gameRef.size.y * 0.1);
-    position = Vector2(0, gameRef.size.y - size.y);
-    
-    // Draw on top of background but behind player/bricks if possible, 
-    // or just let default priority handle it since we add it first in the game.
-    priority = 0;
-
-    _dirtPaint = Paint()..color = const Color(0xFF5D4037); // Brown dirt
-    _grassPaint = Paint()..color = const Color(0xFF388E3C); // Darker green grass top
-  }
-
-  @override
-  void update(double dt) {
-    super.update(dt);
-    
-    // Scroll the texture pattern based on game speed, or just constantly
-    double currentSpeed = _speed;
-    try {
-      currentSpeed = _speed * (gameRef as dynamic).slowMoMultiplier;
-    } catch (_) {}
-    
-    _scrollOffset += currentSpeed * dt;
-    
-    // Loop the offset every 40 pixels (size of our pattern)
-    if (_scrollOffset >= 40.0) {
-      _scrollOffset -= 40.0;
-    }
+    _groundHeight = game.size.y * 0.08;
+    size = Vector2(game.size.x, _groundHeight);
+    position = Vector2(0, game.size.y - _groundHeight);
+    priority = 5; // Above background, below player
   }
 
   @override
   void render(Canvas canvas) {
     super.render(canvas);
-    
-    final rect = size.toRect();
-    
-    // Base dirt
-    canvas.drawRect(rect, _dirtPaint);
-    
-    // Grass top layer
-    final grassRect = Rect.fromLTWH(0, 0, size.x, size.y * 0.3);
-    canvas.drawRect(grassRect, _grassPaint);
+    final pixelSize = 4.0;
 
-    // Draw scrolling pattern lines to simulate movement
-    final patternPaint = Paint()
-      ..color = Colors.black.withOpacity(0.2)
-      ..strokeWidth = 3.0;
+    // Dark dirt base
+    canvas.drawRect(
+      Rect.fromLTWH(0, pixelSize * 4, size.x, size.y - pixelSize * 4),
+      Paint()..color = const Color(0xFF5D3A1A),
+    );
 
-    for (double x = -40.0; x < size.x; x += 40.0) {
-      double drawX = x + _scrollOffset;
-      // Slanted lines for dirt texture
-      canvas.drawLine(
-        Offset(drawX, size.y * 0.3), 
-        Offset(drawX - 20, size.y), 
-        patternPaint
+    // Medium brown dirt layer
+    canvas.drawRect(
+      Rect.fromLTWH(0, pixelSize * 3, size.x, pixelSize * 3),
+      Paint()..color = const Color(0xFF7B4F2A),
+    );
+
+    // Top grass layer (bright green)
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, size.x, pixelSize * 3),
+      Paint()..color = const Color(0xFF4CAF50),
+    );
+
+    // Darker grass accent line
+    canvas.drawRect(
+      Rect.fromLTWH(0, pixelSize * 2, size.x, pixelSize),
+      Paint()..color = const Color(0xFF388E3C),
+    );
+
+    // Pixel grass blades sticking up
+    final grassBladePaint = Paint()..color = const Color(0xFF66BB6A);
+    final darkGrassBlade = Paint()..color = const Color(0xFF43A047);
+    final rng = Random(42);
+
+    for (double x = 0; x < size.x; x += pixelSize * 2) {
+      final h = (rng.nextInt(3) + 1) * pixelSize;
+      final useDark = rng.nextBool();
+      canvas.drawRect(
+        Rect.fromLTWH(x, -h, pixelSize, h),
+        useDark ? darkGrassBlade : grassBladePaint,
       );
-      
-      // Grass tufts
-      canvas.drawLine(
-        Offset(drawX, 0), 
-        Offset(drawX + 10, size.y * 0.3), 
-        Paint()..color = const Color(0xFF2E7D32)..strokeWidth = 4.0
+    }
+
+    // Dirt pixel dots for texture
+    final dirtDotPaint = Paint()..color = const Color(0xFF4E2E10);
+    final lightDirtDot = Paint()..color = const Color(0xFF8B6340);
+    for (int i = 0; i < 30; i++) {
+      final dx = rng.nextDouble() * size.x;
+      final dy = pixelSize * 5 + rng.nextDouble() * (size.y - pixelSize * 6);
+      canvas.drawRect(
+        Rect.fromLTWH(dx, dy, pixelSize, pixelSize),
+        rng.nextBool() ? dirtDotPaint : lightDirtDot,
       );
     }
   }

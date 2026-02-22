@@ -5,7 +5,10 @@ import 'dart:math';
 
 import '../brick_dodger_game.dart';
 import 'brick.dart';
+import 'coin.dart';
 import 'power_up.dart';
+import 'lava.dart';
+import 'safe_brick.dart';
 
 class Player extends PositionComponent
     with CollisionCallbacks, HasGameReference<BrickDodgerGame> {
@@ -22,6 +25,13 @@ class Player extends PositionComponent
   /// Near-miss detection radius (world units from player center)
   static const double nearMissRadius = 80.0;
 
+  // Jump / Gravity for Lava mode
+  double _velocityY = 0;
+  static const double _gravity = 800.0;
+  static const double _jumpForce = -400.0;
+  bool _isOnGround = true;
+  double _groundY = 0; // Y position of the ground surface
+
   Player() : super(size: Vector2(30, 60)) {
     _skinPaint = Paint()..color = const Color(0xFFFFC0CB);
     _shirtPaint = Paint()..color = Colors.blue;
@@ -31,7 +41,9 @@ class Player extends PositionComponent
   @override
   Future<void> onLoad() async {
     super.onLoad();
-    position = Vector2(game.size.x / 2 - size.x / 2, game.size.y - size.y - 50);
+    final groundHeight = game.size.y * 0.08;
+    _groundY = game.size.y - groundHeight - size.y;
+    position = Vector2(game.size.x / 2 - size.x / 2, _groundY);
     add(RectangleHitbox(position: Vector2(5, 5), size: Vector2(20, 50)));
     _lastX = position.x;
   }
@@ -65,9 +77,21 @@ class Player extends PositionComponent
       } else {
         game.gameOver();
       }
+    } else if (other is Coin) {
+      game.collectCoin();
+      other.removeFromParent();
     } else if (other is PowerUp) {
       game.collectPowerUp(other.type);
       other.removeFromParent();
+    } else if (other is Lava) {
+      game.gameOver();
+    } else if (other is SafeBrick) {
+      // Land on safe brick if coming from above
+      if (_velocityY >= 0 && position.y + size.y <= other.position.y + 15) {
+        position.y = other.position.y - size.y;
+        _velocityY = 0;
+        _isOnGround = true;
+      }
     }
   }
 
@@ -89,6 +113,19 @@ class Player extends PositionComponent
     angle += (targetAngle - angle) * dt * 10;
     _lastX = position.x;
 
+    // Gravity and jump physics (only in lava mode)
+    if (game.currentMode == 'lava') {
+      _velocityY += _gravity * dt;
+      position.y += _velocityY * dt;
+
+      // Don't fall through the initial ground
+      if (position.y >= _groundY) {
+        position.y = _groundY;
+        _velocityY = 0;
+        _isOnGround = true;
+      }
+    }
+
     // Near-miss detection: check all bricks within proximity
     final playerCenter = center;
     for (final brick in game.children.whereType<Brick>()) {
@@ -99,6 +136,18 @@ class Player extends PositionComponent
         brick.triggeredNearMiss = true;
       }
     }
+  }
+
+  void jump() {
+    if (_isOnGround) {
+      _velocityY = _jumpForce;
+      _isOnGround = false;
+    }
+  }
+
+  void resetJump() {
+    _velocityY = 0;
+    _isOnGround = true;
   }
 
   @override

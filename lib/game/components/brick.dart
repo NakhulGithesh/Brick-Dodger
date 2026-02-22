@@ -18,6 +18,14 @@ class Brick extends PositionComponent
   double _trailTimer = 0.0;
   final Random _random = Random();
 
+  // Invisible brick mechanic
+  bool _isInvisible = false;
+  double _opacity = 1.0;
+  double _flashTimer = 0.0;
+  bool _isFlashing = false;
+  static const double _flashInterval = 2.0;
+  static const double _flashDuration = 0.15;
+
   Brick({required Vector2 position, required this.speed})
     : super(position: position, size: Vector2(60, 25)) {
     _basePaint = Paint()..color = const Color(0xFFB22222); // Firebrick red
@@ -38,7 +46,7 @@ class Brick extends PositionComponent
   @override
   void update(double dt) {
     super.update(dt);
-    position.y += speed * (game as dynamic).slowMoMultiplier * dt;
+    position.y += speed * game.gravityDirection.y * game.timeDilation * dt;
 
     // Particle Trails
     _trailTimer += dt;
@@ -68,8 +76,36 @@ class Brick extends PositionComponent
       );
     }
 
-    // Remove when it passes the bottom of the screen to optimize memory
-    if (position.y > game.size.y) {
+    // Invisible brick mechanic: fade out past midpoint
+    if (!_isInvisible && position.y > game.size.y / 2) {
+      _isInvisible = true;
+      _opacity = 0.0;
+      _flashTimer = 0;
+    }
+
+    // Flash hint every 2 seconds while invisible
+    if (_isInvisible) {
+      _flashTimer += dt;
+      if (_isFlashing) {
+        _opacity = 0.8;
+        if (_flashTimer >= _flashDuration) {
+          _isFlashing = false;
+          _flashTimer = 0;
+          _opacity = 0.0;
+        }
+      } else {
+        _opacity = 0.0;
+        if (_flashTimer >= _flashInterval) {
+          _isFlashing = true;
+          _flashTimer = 0;
+        }
+      }
+    }
+
+    // Remove when it passes off-screen (either direction) to optimize memory
+    final isOffBottom = game.gravityDirection.y > 0 && position.y > game.size.y;
+    final isOffTop = game.gravityDirection.y < 0 && position.y + size.y < 0;
+    if (isOffBottom || isOffTop) {
       removeFromParent();
       
       // Screen Shake
@@ -90,6 +126,15 @@ class Brick extends PositionComponent
   @override
   void render(Canvas canvas) {
     super.render(canvas);
+    
+    // Apply opacity for invisible brick mechanic
+    if (_opacity < 1.0) {
+      canvas.saveLayer(
+        size.toRect(),
+        Paint()..color = Colors.white.withValues(alpha: _opacity),
+      );
+    }
+
     final rect = size.toRect();
 
     // Draw brick base
@@ -125,5 +170,10 @@ class Brick extends PositionComponent
       Offset(size.x, size.y / 2),
       _mortarPaint,
     );
+
+    // Close the saveLayer if opacity was applied
+    if (_opacity < 1.0) {
+      canvas.restore();
+    }
   }
 }
