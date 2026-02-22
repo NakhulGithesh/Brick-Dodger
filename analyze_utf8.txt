@@ -1,0 +1,32 @@
+﻿Analyzing lib...
+
+  error - game\components\player.dart:176:11 - The method 'onCollisionStart' isn't defined in a superclass of 'Player'. Try correcting the name to the name of an existing method, or defining a method named 'onCollisionStart' in a superclass. - undefined_super_member
+  error - game\components\player.dart:179:22 - Undefined name 'activeCollisions'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - game\components\player.dart:190:25 - Undefined name 'activeCollisions'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - game\components\player.dart:203:7 - The class 'NearMissHitbox' can't implement both 'GenericCollisionCallbacks<ShapeHitbox>' and 'GenericCollisionCallbacks<PositionComponent>' because the type arguments are different. - conflicting_generic_interfaces
+  error - game\components\player.dart:203:48 - 'CollisionCallbacks._activeCollisions' ('Set<PositionComponent>? Function()') isn't a valid override of 'GenericCollisionCallbacks._activeCollisions' ('Set<ShapeHitbox>? Function()'). - invalid_override
+           - The member being overridden at C:\Users\Lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\flame-1.35.1\lib\src\collisions\collision_callbacks.dart:39:11.
+  error - game\components\player.dart:203:48 - 'CollisionCallbacks.activeCollisions' ('Set<PositionComponent> Function()') isn't a valid override of 'ShapeHitbox.activeCollisions' ('Set<ShapeHitbox> Function()'). - invalid_override
+           - The member being overridden at C:\Users\Lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\flame-1.35.1\lib\src\collisions\hitboxes\shape_hitbox.dart:44:24.
+  error - game\components\player.dart:203:48 - 'CollisionCallbacks.collidingWith' ('bool Function(PositionComponent)') isn't a valid override of 'ShapeHitbox.collidingWith' ('bool Function(Hitbox<Hitbox<dynamic>>)'). - invalid_override
+           - The member being overridden at C:\Users\Lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\flame-1.35.1\lib\src\collisions\hitboxes\shape_hitbox.dart:53:8.
+  error - game\components\player.dart:203:48 - The setter 'CollisionCallbacks.onCollisionCallback' ('void Function(void Function(Set<Vector2>, PositionComponent)?)') isn't a valid override of 'ShapeHitbox.onCollisionCallback' ('void Function(void Function(Set<Vector2>, ShapeHitbox)?)'). - invalid_override
+           - The setter being overridden at C:\Users\Lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\flame-1.35.1\lib\src\collisions\hitboxes\shape_hitbox.dart:265:35.
+  error - game\components\player.dart:203:48 - The setter 'CollisionCallbacks.onCollisionEndCallback' ('void Function(void Function(PositionComponent)?)') isn't a valid override of 'ShapeHitbox.onCollisionEndCallback' ('void Function(void Function(ShapeHitbox)?)'). - invalid_override
+           - The setter being overridden at C:\Users\Lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\flame-1.35.1\lib\src\collisions\hitboxes\shape_hitbox.dart:271:38.
+  error - game\components\player.dart:203:48 - The setter 'CollisionCallbacks.onCollisionStartCallback' ('void Function(void Function(Set<Vector2>, PositionComponent)?)') isn't a valid override of 'ShapeHitbox.onCollisionStartCallback' ('void Function(void Function(Set<Vector2>, ShapeHitbox)?)'). - invalid_override
+           - The setter being overridden at C:\Users\Lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\flame-1.35.1\lib\src\collisions\hitboxes\shape_hitbox.dart:268:35.
+  error - game\components\player.dart:207:8 - 'NearMissHitbox.onCollisionStart' ('void Function(Set<Vector2>, ShapeHitbox)') isn't a valid override of 'CollisionCallbacks.onCollisionStart' ('void Function(Set<Vector2>, PositionComponent)'). - invalid_override
+           - The member being overridden at C:\Users\Lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\flame-1.35.1\lib\src\collisions\collision_callbacks.dart:124:8.
+warning - game\components\brick.dart:9:8 - Unused import: 'player.dart'. Try removing the import directive. - unused_import
+warning - game\components\player.dart:175:8 - The method doesn't override an inherited method. Try updating this class to match the superclass, or removing the override annotation. - override_on_non_overriding_member
+   info - game\brick_dodger_game.dart:29:10 - The private field _cloudSpawnInterval could be 'final'. Try making the field 'final'. - prefer_final_fields
+   info - game\components\brick.dart:62:51 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - game\components\cloud.dart:6:44 - 'HasGameRef' is deprecated and shouldn't be used. Use HasGameReference instead. This mixin will be removed in a future version of Flame. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - game\components\cloud.dart:38:41 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - game\components\ground.dart:4:45 - 'HasGameRef' is deprecated and shouldn't be used. Use HasGameReference instead. This mixin will be removed in a future version of Flame. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - game\components\ground.dart:60:30 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - game\components\player.dart:162:42 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - main.dart:36:37 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+
+21 issues found.
