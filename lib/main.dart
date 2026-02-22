@@ -6,6 +6,7 @@ import 'game/brick_dodger_game.dart';
 import 'overlays/main_menu_overlay.dart';
 import 'overlays/store_menu_overlay.dart';
 import 'overlays/info_menu_overlay.dart';
+import 'overlays/mode_briefing_overlay.dart';
 import 'overlays/pixel_button.dart';
 
 void main() {
@@ -47,6 +48,9 @@ class _GameWidgetWrapperState extends State<GameWidgetWrapper> {
         // ---------- Info Menu ----------
         'infoMenu': (context, BrickDodgerGame game) {
           return InfoMenuOverlay(game: game);
+        },
+        'modeBriefing': (context, BrickDodgerGame game) {
+          return ModeBriefingOverlay(game: game);
         },
 
         // ---------- Game Over ----------

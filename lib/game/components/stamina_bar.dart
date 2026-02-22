@@ -15,7 +15,7 @@ class StaminaBar extends PositionComponent
   Future<void> onLoad() async {
     super.onLoad();
     size = Vector2(160, 14);
-    position = Vector2(game.size.x - size.x - 20, 55);
+    position = Vector2(game.size.x / 2 - size.x / 2, 20);
     priority = 100; // HUD layer
 
     _bgPaint = Paint()..color = const Color(0xFF333333);
@@ -38,10 +38,7 @@ class StaminaBar extends PositionComponent
 
     // Filled portion based on stamina
     final fillWidth = size.x * game.stamina.clamp(0.0, 1.0);
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, fillWidth, size.y),
-      _fillPaint,
-    );
+    canvas.drawRect(Rect.fromLTWH(0, 0, fillWidth, size.y), _fillPaint);
 
     // Glow effect when bullet time is active
     if (game.bulletTimeActive) {

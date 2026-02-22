@@ -13,6 +13,7 @@ class StorageHelper {
     'the_floor_is_lava',
     'bullet_time',
     'size_matters',
+    'invisible_bricks',
   ];
 
   static final Map<String, String> modeDisplayNames = {
@@ -21,6 +22,7 @@ class StorageHelper {
     'the_floor_is_lava': 'The Floor Is Lava',
     'bullet_time': 'Bullet Time',
     'size_matters': 'Size Matters',
+    'invisible_bricks': 'Invisible Bricks',
   };
 
   SharedPreferences? _prefs;

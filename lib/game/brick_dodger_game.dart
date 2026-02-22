@@ -21,7 +21,7 @@ import 'managers/storage_helper.dart';
 import 'managers/game_data.dart';
 
 class BrickDodgerGame extends FlameGame
-    with PanDetector, MultiTouchTapDetector, HasCollisionDetection {
+    with MultiTouchDragDetector, MultiTouchTapDetector, HasCollisionDetection {
   late Player player;
   int score = 0;
   int bestScore = 0;
@@ -50,10 +50,11 @@ class BrickDodgerGame extends FlameGame
   // --- Bullet Time ---
   double stamina = 1.0;
   bool bulletTimeActive = false;
-  double timeDilation = 1.0;
-  int _activePointers = 0;
+  double timeDilation = 1.0; // multiplier for speeds when bullet time is active
+  final Set<int> _tappedPointers = {};
+  final Set<int> _draggedPointers = {};
 
-  // --- Size Matters ---
+  // For Size Matters mode---
   int _lastShrinkPillScore = 0;
   bool _giantModeTriggered = false;
 
@@ -72,8 +73,8 @@ class BrickDodgerGame extends FlameGame
   final StorageHelper storage = StorageHelper();
 
   Lava? _lava;
-  double _safeBrickTimer = 0;
-  double _safeBrickInterval = 2.5;
+  double _highestPlatformY = 0;
+  double _distanceClimbed = 0;
 
   /// All known overlay keys — used by navigateTo to clear stale overlays.
   static const List<String> _allOverlayKeys = [
@@ -81,7 +82,11 @@ class BrickDodgerGame extends FlameGame
     'storeMenu',
     'infoMenu',
     'GameOver',
+    'modeBriefing',
   ];
+
+  // Stores the selected mode before the briefing starts it.
+  String pendingMode = '';
 
   /// Centralized overlay navigation: removes ALL overlays then shows [target].
   /// Pass `null` to clear overlays without showing a new one (e.g. gameplay).
@@ -106,24 +111,49 @@ class BrickDodgerGame extends FlameGame
     await storage.init();
     gameData = storage.loadGameData();
     walletCoins = gameData.totalCoins;
-    bestScore = storage.getHighScore(currentMode); // Load best score for current mode
+    bestScore = storage.getHighScore(
+      currentMode,
+    ); // Load best score for current mode
 
     add(Ground());
 
     // Add background trees on the grass
     final groundHeight = size.y * 0.08;
     final treeY = size.y - groundHeight - 70; // Trees sit on top of ground
-    add(PixelTree(position: Vector2(size.x * 0.1, treeY), treeScale: 1.0, seed: 1));
-    add(PixelTree(position: Vector2(size.x * 0.5, treeY - 10), treeScale: 1.2, seed: 2));
-    add(PixelTree(position: Vector2(size.x * 0.85, treeY + 5), treeScale: 0.9, seed: 3));
+    add(
+      PixelTree(
+        position: Vector2(size.x * 0.1, treeY),
+        treeScale: 1.0,
+        seed: 1,
+      ),
+    );
+    add(
+      PixelTree(
+        position: Vector2(size.x * 0.5, treeY - 10),
+        treeScale: 1.2,
+        seed: 2,
+      ),
+    );
+    add(
+      PixelTree(
+        position: Vector2(size.x * 0.85, treeY + 5),
+        treeScale: 0.9,
+        seed: 3,
+      ),
+    );
 
     // Spawn initial clouds at random Y positions (top half of sky)
     final rng = Random();
     for (int i = 0; i < 4; i++) {
-      add(Cloud(
-        position: Vector2(rng.nextDouble() * size.x, rng.nextDouble() * size.y * 0.3),
-        speed: 10.0 + rng.nextDouble() * 20.0,
-      ));
+      add(
+        Cloud(
+          position: Vector2(
+            rng.nextDouble() * size.x,
+            rng.nextDouble() * size.y * 0.3,
+          ),
+          speed: 10.0 + rng.nextDouble() * 20.0,
+        ),
+      );
     }
 
     player = Player();
@@ -140,7 +170,11 @@ class BrickDodgerGame extends FlameGame
             fontSize: 20,
             shadows: [
               Shadow(color: Colors.black, offset: Offset(1, 1), blurRadius: 0),
-              Shadow(color: Colors.black, offset: Offset(-1, -1), blurRadius: 0),
+              Shadow(
+                color: Colors.black,
+                offset: Offset(-1, -1),
+                blurRadius: 0,
+              ),
               Shadow(color: Colors.black, offset: Offset(1, -1), blurRadius: 0),
               Shadow(color: Colors.black, offset: Offset(-1, 1), blurRadius: 0),
             ],
@@ -184,29 +218,51 @@ class BrickDodgerGame extends FlameGame
   // --- Multi-touch for Bullet Time ---
   @override
   void onTapDown(int pointerId, TapDownInfo info) {
-    _activePointers++;
+    _tappedPointers.add(pointerId);
     _updateBulletTime();
-    // Lava mode: tap to jump
-    if (!paused && _gameStarted && currentMode == 'lava') {
-      player.jump();
-    }
   }
 
   @override
   void onTapUp(int pointerId, TapUpInfo info) {
-    _activePointers = (_activePointers - 1).clamp(0, 99);
+    _tappedPointers.remove(pointerId);
     _updateBulletTime();
   }
 
   @override
   void onTapCancel(int pointerId) {
-    _activePointers = (_activePointers - 1).clamp(0, 99);
+    _tappedPointers.remove(pointerId);
+    _updateBulletTime();
+  }
+
+  @override
+  void onDragStart(int pointerId, DragStartInfo info) {
+    _draggedPointers.add(pointerId);
+    _updateBulletTime();
+  }
+
+  @override
+  void onDragUpdate(int pointerId, DragUpdateInfo info) {
+    if (!paused && _gameStarted) {
+      player.move(info.delta.global);
+    }
+  }
+
+  @override
+  void onDragEnd(int pointerId, DragEndInfo info) {
+    _draggedPointers.remove(pointerId);
+    _updateBulletTime();
+  }
+
+  @override
+  void onDragCancel(int pointerId) {
+    _draggedPointers.remove(pointerId);
     _updateBulletTime();
   }
 
   void _updateBulletTime() {
     if (currentMode == 'bullet_time' && _gameStarted && !paused) {
-      bulletTimeActive = _activePointers >= 2 && stamina > 0;
+      final activeCount = _tappedPointers.union(_draggedPointers).length;
+      bulletTimeActive = activeCount >= 2 && stamina > 0;
       timeDilation = bulletTimeActive ? 0.2 : 1.0;
       slowMoMultiplier = timeDilation;
     }
@@ -229,7 +285,7 @@ class BrickDodgerGame extends FlameGame
         }
       } else {
         // Recharge when not active
-        stamina = (stamina + dt * 0.15).clamp(0.0, 1.0);
+        stamina = (stamina + dt * 0.03).clamp(0.0, 1.0);
       }
     }
 
@@ -248,8 +304,13 @@ class BrickDodgerGame extends FlameGame
     // Increase difficulty every 10 seconds
     if (_difficultyTimer >= 10.0) {
       _difficultyTimer = 0;
-      _spawnInterval = max(0.5, _spawnInterval - 0.2);
-      _brickSpeed += 50.0;
+      if (currentMode == 'bullet_time') {
+        _spawnInterval = max(0.1, _spawnInterval - 0.1);
+        _brickSpeed += 40.0;
+      } else {
+        _spawnInterval = max(0.5, _spawnInterval - 0.2);
+        _brickSpeed += 50.0;
+      }
     }
 
     _spawnTimer += dt;
@@ -268,11 +329,13 @@ class BrickDodgerGame extends FlameGame
       if (score >= 100 && !_speedBoosted) {
         _speedBoosted = true;
         _brickSpeed *= 1.2;
-        add(FloatingText(
-          text: 'SPEED UP!',
-          position: Vector2(size.x / 2 - 50, size.y / 2 - 60),
-          floatSpeed: 60.0,
-        ));
+        add(
+          FloatingText(
+            text: 'SPEED UP!',
+            position: Vector2(size.x / 2 - 50, size.y / 2 - 60),
+            floatSpeed: 60.0,
+          ),
+        );
       }
 
       // Random 5% chance every 5s to trigger Coin Rush
@@ -283,12 +346,14 @@ class BrickDodgerGame extends FlameGame
           if (Random().nextDouble() < 0.05) {
             coinRushActive = true;
             _coinRushTimer = 7.0;
-            add(FloatingText(
-              text: 'COIN RUSH!',
-              position: Vector2(size.x / 2 - 60, size.y / 2),
-              floatSpeed: 40.0,
-              lifespan: 2.0,
-            ));
+            add(
+              FloatingText(
+                text: 'COIN RUSH!',
+                position: Vector2(size.x / 2 - 60, size.y / 2),
+                floatSpeed: 40.0,
+                lifespan: 2.0,
+              ),
+            );
           }
         }
       }
@@ -309,28 +374,91 @@ class BrickDodgerGame extends FlameGame
       if (_gravityFlipTimer >= 10.0) {
         _gravityFlipTimer = 0;
         gravityDirection.y *= -1;
-        add(FloatingText(
-          text: 'GRAVITY FLIP!',
-          position: Vector2(size.x / 2 - 70, size.y / 2),
-          floatSpeed: 60.0,
-          lifespan: 1.5,
-        ));
-        // Camera rotation effect
+        add(
+          FloatingText(
+            text: 'GRAVITY FLIP!',
+            position: Vector2(size.x / 2 - 70, size.y / 2),
+            floatSpeed: 60.0,
+            lifespan: 1.5,
+          ),
+        );
+        // Camera scale effect for true visual flip
         try {
-          final targetAngle = gravityDirection.y < 0 ? 3.14159 : 0.0;
-          camera.viewfinder.add(
-            RotateEffect.to(targetAngle, EffectController(duration: 0.5)),
-          );
+          if (gravityDirection.y < 0) {
+            camera.viewfinder.transform.scale = Vector2(1, -1);
+            camera.viewfinder.position = Vector2(0, size.y);
+          } else {
+            camera.viewfinder.transform.scale = Vector2(1, 1);
+            camera.viewfinder.position = Vector2.zero();
+          }
         } catch (_) {}
       }
     }
 
-    // Lava mode: spawn safe bricks periodically
+    // Lava mode: "camera follow" via shifting everything down, scoring, and procedural generation
     if (currentMode == 'lava') {
-      _safeBrickTimer += dt;
-      if (_safeBrickTimer >= _safeBrickInterval) {
-        _safeBrickTimer = 0;
-        _spawnSafeBrick();
+      final targetPlayerY = size.y * 0.6; // Keep player in lower half
+      if (player.position.y < targetPlayerY) {
+        final diff = targetPlayerY - player.position.y;
+
+        player.position.y += diff;
+        _highestPlatformY += diff;
+        _distanceClimbed += diff;
+
+        for (final b in children.whereType<SafeBrick>()) b.position.y += diff;
+        for (final b in children.whereType<Brick>()) b.position.y += diff;
+        for (final c in children.whereType<Coin>()) c.position.y += diff;
+        for (final p in children.whereType<PowerUp>()) p.position.y += diff;
+        for (final c in children.whereType<Cloud>()) c.position.y += diff;
+        for (final f in children.whereType<FloatingText>())
+          f.position.y += diff;
+        for (final l in children.whereType<Lava>()) l.position.y += diff;
+        for (final g in children.whereType<Ground>()) g.position.y += diff;
+        for (final t in children.whereType<PixelTree>()) t.position.y += diff;
+      }
+
+      // Height-based scoring
+      final newScore = (_distanceClimbed / 50).floor();
+      if (newScore > score) {
+        score = newScore;
+        _scoreText.text = 'Score: $score (${scoreMultiplier}x)';
+        if (score > bestScore) {
+          bestScore = score;
+          _bestScoreText.text = 'Best: $bestScore';
+        }
+
+        // Increase lava speed as score goes up
+        for (final l in children.whereType<Lava>()) {
+          l.riseSpeed = 15.0 + (score * 2.0);
+        }
+      }
+
+      // Procedural platform generation
+      _spawnPeriodicPlatforms();
+    }
+  }
+
+  void _spawnPeriodicPlatforms() {
+    // Spawn platforms if we are close to the top of the viewport (which is y=0)
+    while (_highestPlatformY > -size.y) {
+      // Guaranteed reachable distance: 50 to 100 pixels
+      _highestPlatformY -= 50.0 + Random().nextDouble() * 50.0;
+
+      final randomX = Random().nextDouble() * (size.x - 70);
+      final safeBrick = SafeBrick(
+        position: Vector2(randomX, _highestPlatformY),
+        speed: 0,
+      );
+      add(safeBrick);
+
+      // 5% chance to spawn a stationary hazard brick mid-air
+      if (Random().nextDouble() < 0.05) {
+        final brickX = Random().nextDouble() * (size.x - 60);
+        final brick = Brick(
+          position: Vector2(brickX, _highestPlatformY - 60), // Halfway up
+          speed: 0,
+        );
+        add(brick);
       }
     }
   }
@@ -343,10 +471,13 @@ class BrickDodgerGame extends FlameGame
     // Random X between 0 and (screenWidth - brickWidth)
     final randomX = random.nextDouble() * (size.x - brickWidth);
 
-    final brick = Brick(
-      position: Vector2(randomX, -brickHeight), // Spawn above screen
-      speed: _brickSpeed,
-    );
+    double startY = -brickHeight;
+    // Alter spawn logic when gravity is flipped
+    if (currentMode == 'gravity_flip' && gravityDirection.y < 0) {
+      startY = size.y + brickHeight;
+    }
+
+    final brick = Brick(position: Vector2(randomX, startY), speed: _brickSpeed);
     add(brick);
 
     // 5% chance to spawn a power-up alongside a brick
@@ -359,8 +490,13 @@ class BrickDodgerGame extends FlameGame
     final random = Random();
     final coinSize = 20.0;
     final randomX = random.nextDouble() * (size.x - coinSize);
+    double startY = -coinSize;
+    if (currentMode == 'gravity_flip' && gravityDirection.y < 0) {
+      startY = size.y + coinSize;
+    }
+
     final coin = Coin(
-      position: Vector2(randomX, -coinSize),
+      position: Vector2(randomX, startY),
       speed: _brickSpeed * 0.8, // Coins fall slightly slower than bricks
     );
     add(coin);
@@ -368,34 +504,24 @@ class BrickDodgerGame extends FlameGame
 
   void _spawnPowerUp({PowerUpType? forceType}) {
     final random = Random();
-    final type = forceType ?? PowerUpType.values[random.nextInt(PowerUpType.values.length)];
+    final type =
+        forceType ??
+        PowerUpType.values[random.nextInt(PowerUpType.values.length)];
 
     // Random X between 0 and (screenWidth - 30)
     final randomX = random.nextDouble() * (size.x - 30);
 
+    double startY = -30.0;
+    if (currentMode == 'gravity_flip' && gravityDirection.y < 0) {
+      startY = size.y + 30.0;
+    }
+
     final powerUp = PowerUp(
-      position: Vector2(randomX, -30),
+      position: Vector2(randomX, startY),
       baseSpeed: 150.0,
       type: type,
     );
     add(powerUp);
-  }
-
-  void _spawnSafeBrick() {
-    final random = Random();
-    final randomX = random.nextDouble() * (size.x - 70);
-    final safeBrick = SafeBrick(
-      position: Vector2(randomX, -20),
-      speed: _brickSpeed * 0.5,
-    );
-    add(safeBrick);
-  }
-
-  @override
-  void onPanUpdate(DragUpdateInfo info) {
-    if (!paused && _gameStarted) {
-      player.move(info.delta.global);
-    }
   }
 
   void brickDodged(Brick brick) {
@@ -403,27 +529,35 @@ class BrickDodgerGame extends FlameGame
     if (comboCounter >= 10) {
       scoreMultiplier++;
       comboCounter = 0;
-      add(FloatingText(
-        text: 'Combo $scoreMultiplier' 'x!',
-        position: Vector2(size.x / 2 - 40, size.y / 2),
-        floatSpeed: 80.0,
-      ));
+      add(
+        FloatingText(
+          text:
+              'Combo $scoreMultiplier'
+              'x!',
+          position: Vector2(size.x / 2 - 40, size.y / 2),
+          floatSpeed: 80.0,
+        ),
+      );
     }
 
     int points = 1 * scoreMultiplier;
     if (brick.triggeredNearMiss) {
       points += 5 * scoreMultiplier;
-      add(FloatingText(
-        text: 'Close! +${5 * scoreMultiplier}',
-        position: Vector2(brick.position.x, brick.position.y - 20),
-      ));
+      add(
+        FloatingText(
+          text: 'Close! +${5 * scoreMultiplier}',
+          position: Vector2(player.position.x, player.position.y - 40),
+        ),
+      );
     }
 
-    score += points;
-    _scoreText.text = 'Score: $score (${scoreMultiplier}x)';
-    if (score > bestScore) {
-      bestScore = score;
-      _bestScoreText.text = 'Best: $bestScore';
+    if (currentMode != 'lava') {
+      score += points;
+      _scoreText.text = 'Score: $score (${scoreMultiplier}x)';
+      if (score > bestScore) {
+        bestScore = score;
+        _bestScoreText.text = 'Best: $bestScore';
+      }
     }
 
     // --- Size Matters: grow player ---
@@ -435,15 +569,20 @@ class BrickDodgerGame extends FlameGame
       // Giant Mode at 3.0x
       if (player.scale.x >= 3.0 && !_giantModeTriggered) {
         _giantModeTriggered = true;
-        add(FloatingText(
-          text: 'GIANT MODE!',
-          position: Vector2(size.x / 2 - 60, size.y / 2 - 40),
-          floatSpeed: 60.0,
-        ));
+        add(
+          FloatingText(
+            text: 'GIANT MODE!',
+            position: Vector2(size.x / 2 - 60, size.y / 2 - 40),
+            floatSpeed: 60.0,
+          ),
+        );
         // Screen shake
         try {
           (camera as dynamic).viewfinder.add(
-            MoveEffect.by(Vector2(8, 8), EffectController(duration: 0.1, alternate: true, repeatCount: 3)),
+            MoveEffect.by(
+              Vector2(8, 8),
+              EffectController(duration: 0.1, alternate: true, repeatCount: 3),
+            ),
           );
         } catch (_) {}
       }
@@ -462,11 +601,13 @@ class BrickDodgerGame extends FlameGame
     walletCoins++;
     gameData.totalCoins = walletCoins;
     storage.saveWallet(gameData);
-    add(FloatingText(
-      text: '+1 COIN',
-      position: Vector2(player.position.x, player.position.y - 30),
-      floatSpeed: 80.0,
-    ));
+    add(
+      FloatingText(
+        text: '+1 COIN',
+        position: Vector2(player.position.x, player.position.y - 30),
+        floatSpeed: 80.0,
+      ),
+    );
   }
 
   void collectPowerUp(PowerUpType type) {
@@ -481,13 +622,19 @@ class BrickDodgerGame extends FlameGame
       }
     } else if (type == PowerUpType.shrink) {
       if (currentMode == 'size_matters') {
-        // In Size Matters, shrink pill resets scale to 1.0
-        player.scale = Vector2.all(1.0);
-        _giantModeTriggered = false;
-        add(FloatingText(
-          text: 'Shrunk!',
-          position: Vector2(player.position.x, player.position.y - 30),
-        ));
+        // In Size Matters, shrink pill incrementally reduces size
+        player.scale -= Vector2.all(0.1);
+        if (player.scale.x < 1.0) player.scale = Vector2.all(1.0);
+
+        // Reset giant mode triggered flag if we shrank below 3.0
+        if (player.scale.x < 3.0) _giantModeTriggered = false;
+
+        add(
+          FloatingText(
+            text: 'Shrunk!',
+            position: Vector2(player.position.x, player.position.y - 30),
+          ),
+        );
       } else {
         player.activateShrink();
       }
@@ -499,6 +646,8 @@ class BrickDodgerGame extends FlameGame
     currentMode = mode;
     bestScore = storage.getHighScore(mode);
 
+    _resetScenery();
+
     // Clear existing entities
     children.whereType<Brick>().forEach((b) => b.removeFromParent());
     children.whereType<Cloud>().forEach((c) => c.removeFromParent());
@@ -506,33 +655,49 @@ class BrickDodgerGame extends FlameGame
     children.whereType<FloatingText>().forEach((f) => f.removeFromParent());
     children.whereType<Coin>().forEach((c) => c.removeFromParent());
     children.whereType<SafeBrick>().forEach((s) => s.removeFromParent());
-    if (_lava != null) { _lava!.removeFromParent(); _lava = null; }
+    if (_lava != null) {
+      _lava!.removeFromParent();
+      _lava = null;
+    }
 
     // Reset state
     score = 0;
+    if (mode == 'bullet_time') {
+      _spawnInterval = 0.8;
+      _brickSpeed = 350.0;
+    } else if (mode == 'lava') {
+      _spawnInterval = 5.0; // Very rare
+      _brickSpeed = 200.0;
+    } else {
+      _spawnInterval = 2.0;
+      _brickSpeed = 200.0;
+    }
     _spawnTimer = 0;
-    _spawnInterval = 2.0;
-    _brickSpeed = 200.0;
     _cloudSpawnTimer = 0;
     _difficultyTimer = 0;
     slowMoMultiplier = 1.0;
     comboCounter = 0;
     scoreMultiplier = 1;
     _stationaryTimer = 0;
-    player.hasShield = false;
     player.scale = Vector2.all(1.0);
-    player.position = Vector2(
-      size.x / 2 - player.size.x / 2,
-      size.y - _groundHeight - player.size.y,
-    );
+    if (mode == 'lava') {
+      // Start higher in lava mode so player falls onto the initial green brick
+      player.position = Vector2(size.x / 2, size.y - _groundHeight - 40);
+    } else {
+      player.position = Vector2(size.x / 2, size.y - _groundHeight);
+    }
     player.resetJump();
-    _safeBrickTimer = 0;
+
+    _highestPlatformY = player.position.y - 100;
+    _distanceClimbed = 0;
+    camera.viewfinder.position = Vector2.zero();
 
     // Reset Bullet Time state
     stamina = 1.0;
     bulletTimeActive = false;
     timeDilation = 1.0;
-    _activePointers = 0;
+    _tappedPointers.clear();
+    _draggedPointers.clear();
 
     // Reset Size Matters state
     _lastShrinkPillScore = 0;
@@ -547,7 +712,9 @@ class BrickDodgerGame extends FlameGame
     // Reset Gravity Flip state
     gravityDirection = Vector2(0, 1);
     _gravityFlipTimer = 0;
-    try { camera.viewfinder.angle = 0; } catch (_) {}
+    try {
+      camera.viewfinder.angle = 0;
+    } catch (_) {}
 
     // Reload wallet
     gameData = storage.loadGameData();
@@ -565,6 +732,13 @@ class BrickDodgerGame extends FlameGame
     if (mode == 'lava') {
       _lava = Lava(riseSpeed: 15.0);
       add(_lava!);
+      // Spawn a starting safe brick squarely under the player
+      add(
+        SafeBrick(
+          position: Vector2(size.x / 2 - 40, size.y - _groundHeight + 10),
+          speed: 0,
+        )..size = Vector2(80, 20),
+      );
     }
   }
 
@@ -574,7 +748,8 @@ class BrickDodgerGame extends FlameGame
     bulletTimeActive = false;
     timeDilation = 1.0;
     slowMoMultiplier = 1.0;
-    _activePointers = 0;
+    _tappedPointers.clear();
+    _draggedPointers.clear();
     storage.updateHighScoreIfBetter(currentMode, score);
     // Save wallet on game over
     gameData.totalCoins = walletCoins;
@@ -589,6 +764,8 @@ class BrickDodgerGame extends FlameGame
   }
 
   void returnToMainMenu() {
+    _resetScenery();
+
     // Clear entities
     children.whereType<Brick>().forEach((b) => b.removeFromParent());
     children.whereType<Cloud>().forEach((c) => c.removeFromParent());
@@ -596,7 +773,10 @@ class BrickDodgerGame extends FlameGame
     children.whereType<FloatingText>().forEach((f) => f.removeFromParent());
     children.whereType<Coin>().forEach((c) => c.removeFromParent());
     children.whereType<SafeBrick>().forEach((s) => s.removeFromParent());
-    if (_lava != null) { _lava!.removeFromParent(); _lava = null; }
+    if (_lava != null) {
+      _lava!.removeFromParent();
+      _lava = null;
+    }
 
     _gameStarted = false;
     score = 0;
@@ -605,17 +785,15 @@ class BrickDodgerGame extends FlameGame
 
     player.hasShield = false;
     player.scale = Vector2.all(1.0);
-    player.position = Vector2(
-      size.x / 2 - player.size.x / 2,
-      size.y + 200,
-    );
+    player.position = Vector2(size.x / 2, size.y - _groundHeight);
     player.resetJump();
 
     // Reset mode-specific state
     stamina = 1.0;
     bulletTimeActive = false;
     timeDilation = 1.0;
-    _activePointers = 0;
+    _tappedPointers.clear();
+    _draggedPointers.clear();
     _lastShrinkPillScore = 0;
     _giantModeTriggered = false;
     slowMoMultiplier = 1.0;
@@ -625,29 +803,50 @@ class BrickDodgerGame extends FlameGame
     _speedBoosted = false;
     gravityDirection = Vector2(0, 1);
     _gravityFlipTimer = 0;
-    try { camera.viewfinder.angle = 0; } catch (_) {}
+    try {
+      camera.viewfinder.angle = 0;
+    } catch (_) {}
 
     navigateTo('mainMenu');
     // Keep engine paused
   }
 
   void resetGame() {
+    _resetScenery();
+
     // Remove all bricks, clouds, and power-ups
     children.whereType<Brick>().forEach((brick) => brick.removeFromParent());
     children.whereType<Cloud>().forEach((cloud) => cloud.removeFromParent());
     children.whereType<PowerUp>().forEach((p) => p.removeFromParent());
     children.whereType<Coin>().forEach((c) => c.removeFromParent());
     children.whereType<SafeBrick>().forEach((s) => s.removeFromParent());
-    if (_lava != null) { _lava!.removeFromParent(); _lava = null; }
+    if (_lava != null) {
+      _lava!.removeFromParent();
+      _lava = null;
+    }
 
     score = 0;
     _scoreText.text = 'Score: 0';
     _spawnTimer = 0;
-    _spawnInterval = 2.0;
-    _brickSpeed = 200.0;
+    if (currentMode == 'bullet_time') {
+      _spawnInterval = 0.8;
+      _brickSpeed = 350.0;
+    } else if (currentMode == 'lava') {
+      _spawnInterval = 15.0; // Extremely rare
+      _brickSpeed = 200.0;
+    } else {
+      _spawnInterval = 2.0;
+      _brickSpeed = 200.0;
+    }
     _cloudSpawnTimer = 0;
     _difficultyTimer = 0;
     slowMoMultiplier = 1.0;
+
+    // Reset camera from gravity flip
+    gravityDirection = Vector2(0, 1);
+    camera.viewfinder.transform.scale = Vector2(1, 1);
+    camera.viewfinder.position = Vector2.zero();
+
     player.hasShield = false;
 
     comboCounter = 0;
@@ -658,7 +857,8 @@ class BrickDodgerGame extends FlameGame
     stamina = 1.0;
     bulletTimeActive = false;
     timeDilation = 1.0;
-    _activePointers = 0;
+    _tappedPointers.clear();
+    _draggedPointers.clear();
 
     // Reset Size Matters state
     _lastShrinkPillScore = 0;
@@ -673,16 +873,22 @@ class BrickDodgerGame extends FlameGame
     // Reset Gravity Flip state
     gravityDirection = Vector2(0, 1);
     _gravityFlipTimer = 0;
-    try { camera.viewfinder.angle = 0; } catch (_) {}
+    try {
+      camera.viewfinder.angle = 0;
+    } catch (_) {}
 
     // Reset player position
     player.scale = Vector2.all(1.0);
-    player.position = Vector2(
-      size.x / 2 - player.size.x / 2,
-      size.y - _groundHeight - player.size.y,
-    );
+    if (currentMode == 'lava') {
+      player.position = Vector2(size.x / 2, size.y - _groundHeight - 40);
+    } else {
+      player.position = Vector2(size.x / 2, size.y - _groundHeight);
+    }
     player.resetJump();
-    _safeBrickTimer = 0;
+
+    _highestPlatformY = player.position.y - 100;
+    _distanceClimbed = 0;
+    camera.viewfinder.position = Vector2.zero();
 
     _gameStarted = true;
     navigateTo(null); // clear all overlays, back to gameplay
@@ -692,6 +898,31 @@ class BrickDodgerGame extends FlameGame
     if (currentMode == 'lava') {
       _lava = Lava(riseSpeed: 15.0);
       add(_lava!);
+      // Spawn a starting safe brick squarely under the player
+      add(
+        SafeBrick(
+          position: Vector2(size.x / 2 - 40, size.y - _groundHeight + 10),
+          speed: 0,
+        )..size = Vector2(80, 20),
+      );
+    }
+  }
+
+  void _resetScenery() {
+    final floatGroundY = size.y - _groundHeight;
+    for (final ground in children.whereType<Ground>()) {
+      ground.position.y = floatGroundY;
+    }
+    final treeY = floatGroundY - 70;
+    int treeIndex = 0;
+    for (final tree in children.whereType<PixelTree>()) {
+      if (treeIndex == 0)
+        tree.position.y = treeY;
+      else if (treeIndex == 1)
+        tree.position.y = treeY - 10;
+      else if (treeIndex == 2)
+        tree.position.y = treeY + 5;
+      treeIndex++;
     }
   }
 }

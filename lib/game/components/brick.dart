@@ -50,16 +50,22 @@ class Brick extends PositionComponent
 
     // Particle Trails
     _trailTimer += dt;
-    if (_trailTimer > 0.05) {
+    // Only show trail if visible (or flashing)
+    if (_trailTimer > 0.05 && _opacity > 0) {
       _trailTimer = 0.0;
       game.add(
         ParticleSystemComponent(
-          position: position + Vector2(size.x / 2 + (_random.nextDouble() * 20 - 10), 0),
+          position:
+              position +
+              Vector2(size.x / 2 + (_random.nextDouble() * 20 - 10), 0),
           particle: Particle.generate(
             count: 2,
             lifespan: 0.3 + _random.nextDouble() * 0.2,
             generator: (i) => AcceleratedParticle(
-              speed: Vector2(0, -speed * 0.2), // move slightly up relative to screen
+              speed: Vector2(
+                0,
+                -speed * 0.2,
+              ), // move slightly up relative to screen
               child: ComputedParticle(
                 renderer: (canvas, particle) {
                   final opacity = (1 - particle.progress) * 0.4;
@@ -76,57 +82,66 @@ class Brick extends PositionComponent
       );
     }
 
-    // Invisible brick mechanic: fade out past midpoint
-    if (!_isInvisible && position.y > game.size.y / 2) {
-      _isInvisible = true;
-      _opacity = 0.0;
-      _flashTimer = 0;
-    }
-
-    // Flash hint every 2 seconds while invisible
-    if (_isInvisible) {
-      _flashTimer += dt;
-      if (_isFlashing) {
-        _opacity = 0.8;
-        if (_flashTimer >= _flashDuration) {
-          _isFlashing = false;
-          _flashTimer = 0;
-          _opacity = 0.0;
-        }
-      } else {
+    // Invisible brick mechanic: fade out past midpoint (only in invisible_bricks mode)
+    if (game.currentMode == 'invisible_bricks') {
+      if (!_isInvisible && position.y > game.size.y / 2) {
+        _isInvisible = true;
         _opacity = 0.0;
-        if (_flashTimer >= _flashInterval) {
-          _isFlashing = true;
-          _flashTimer = 0;
+        _flashTimer = 0;
+      }
+
+      // Flash hint every 2 seconds while invisible
+      if (_isInvisible) {
+        _flashTimer += dt;
+        if (_isFlashing) {
+          _opacity = 0.8;
+          if (_flashTimer >= _flashDuration) {
+            _isFlashing = false;
+            _flashTimer = 0;
+            _opacity = 0.0;
+          }
+        } else {
+          _opacity = 0.0;
+          if (_flashTimer >= _flashInterval) {
+            _isFlashing = true;
+            _flashTimer = 0;
+          }
         }
       }
     }
 
-    // Remove when it passes off-screen (either direction) to optimize memory
-    final isOffBottom = game.gravityDirection.y > 0 && position.y > game.size.y;
-    final isOffTop = game.gravityDirection.y < 0 && position.y + size.y < 0;
+    // Remove when it passes off-screen (relative to the moving camera)
+    final cameraY = game.camera.viewfinder.position.y;
+    final isOffBottom = position.y > cameraY + game.size.y * 1.5;
+    final isOffTop = position.y + size.y < cameraY - game.size.y * 1.5;
+
     if (isOffBottom || isOffTop) {
       removeFromParent();
-      
-      // Screen Shake
-      try {
-        (game.camera as dynamic).viewfinder.add(
-          MoveEffect.by(Vector2(5, 5), EffectController(duration: 0.05, alternate: true))
-        );
-      } catch (_) {
-        try {
-          (game.camera as dynamic).shake(intensity: 5.0);
-        } catch (_) {}
-      }
 
-      game.brickDodged(this);
+      if (game.currentMode != 'lava') {
+        // Screen Shake
+        try {
+          (game.camera as dynamic).viewfinder.add(
+            MoveEffect.by(
+              Vector2(5, 5),
+              EffectController(duration: 0.05, alternate: true),
+            ),
+          );
+        } catch (_) {
+          try {
+            (game.camera as dynamic).shake(intensity: 5.0);
+          } catch (_) {}
+        }
+
+        game.brickDodged(this);
+      }
     }
   }
 
   @override
   void render(Canvas canvas) {
     super.render(canvas);
-    
+
     // Apply opacity for invisible brick mechanic
     if (_opacity < 1.0) {
       canvas.saveLayer(

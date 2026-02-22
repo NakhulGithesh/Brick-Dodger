@@ -5,16 +5,24 @@ warning - game\brick_dodger_game.dart:36:16 - The value of the field '_cloudSpaw
 warning - game\components\coin.dart:14:16 - The value of the field '_rng' isn't used. Try removing the field, or using it. - unused_field
 warning - game\components\ground.dart:10:16 - The value of the field '_random' isn't used. Try removing the field, or using it. - unused_field
 warning - game\components\power_up.dart:6:8 - Unused import: 'player.dart'. Try removing the import directive. - unused_import
-   info - game\brick_dodger_game.dart:76:10 - The private field _safeBrickInterval could be 'final'. Try making the field 'final'. - prefer_final_fields
-   info - game\components\brick.dart:69:51 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
-   info - game\components\player.dart:68:15 - The member 'center' overrides an inherited member but isn't annotated with '@override'. Try adding the '@override' annotation. - annotate_overrides
-   info - main.dart:59:37 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - game\brick_dodger_game.dart:408:58 - Statements in a for should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - game\brick_dodger_game.dart:409:54 - Statements in a for should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - game\brick_dodger_game.dart:410:53 - Statements in a for should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - game\brick_dodger_game.dart:411:56 - Statements in a for should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - game\brick_dodger_game.dart:412:54 - Statements in a for should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - game\brick_dodger_game.dart:414:11 - Statements in a for should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - game\brick_dodger_game.dart:415:53 - Statements in a for should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - game\brick_dodger_game.dart:416:55 - Statements in a for should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - game\brick_dodger_game.dart:417:58 - Statements in a for should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - game\components\brick.dart:75:51 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - main.dart:63:37 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
    info - overlays\info_menu_overlay.dart:20:29 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
-   info - overlays\info_menu_overlay.dart:83:31 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
-   info - overlays\main_menu_overlay.dart:33:29 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - overlays\info_menu_overlay.dart:80:31 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - overlays\main_menu_overlay.dart:34:29 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - overlays\mode_briefing_overlay.dart:91:29 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
    info - overlays\pixel_button.dart:50:35 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
    info - overlays\pixel_button.dart:65:39 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
    info - overlays\store_menu_overlay.dart:19:29 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
-   info - overlays\store_menu_overlay.dart:129:43 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - overlays\store_menu_overlay.dart:126:43 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
 
-16 issues found.
+24 issues found.

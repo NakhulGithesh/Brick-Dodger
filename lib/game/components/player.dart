@@ -19,7 +19,7 @@ class Player extends PositionComponent
   double _animationTime = 0.0;
   double _lastX = 0.0;
   bool isMoving = false;
-  
+
   bool hasShield = false;
 
   /// Near-miss detection radius (world units from player center)
@@ -28,8 +28,8 @@ class Player extends PositionComponent
   // Jump / Gravity for Lava mode
   double _velocityY = 0;
   static const double _gravity = 800.0;
-  static const double _jumpForce = -400.0;
-  bool _isOnGround = true;
+  static const double _jumpForce =
+      -600.0; // Stronger jump for vertical scrolling
   double _groundY = 0; // Y position of the ground surface
 
   Player() : super(size: Vector2(30, 60)) {
@@ -41,19 +41,22 @@ class Player extends PositionComponent
   @override
   Future<void> onLoad() async {
     super.onLoad();
+    anchor = Anchor.bottomCenter;
+    priority = 100;
     final groundHeight = game.size.y * 0.08;
-    _groundY = game.size.y - groundHeight - size.y;
-    position = Vector2(game.size.x / 2 - size.x / 2, _groundY);
+    _groundY = game.size.y - groundHeight; // Anchor is at bottom
+    position = Vector2(game.size.x / 2, _groundY);
     add(RectangleHitbox(position: Vector2(5, 5), size: Vector2(20, 50)));
     _lastX = position.x;
   }
 
   void move(Vector2 delta) {
     position.add(Vector2(delta.x, 0));
-    if (position.x < 0) {
-      position.x = 0;
-    } else if (position.x + size.x > game.size.x) {
-      position.x = game.size.x - size.x;
+    final halfWidth = size.x / 2;
+    if (position.x + halfWidth < 0) {
+      position.x = game.size.x - halfWidth;
+    } else if (position.x - halfWidth > game.size.x) {
+      position.x = -halfWidth;
     }
   }
 
@@ -64,11 +67,14 @@ class Player extends PositionComponent
     });
   }
 
-  /// Returns the center point of the player in world space.
-  Vector2 get center => position + size / 2;
+  @override
+  Vector2 get center => position + Vector2(0, -size.y / 2);
 
   @override
-  void onCollisionStart(Set<Vector2> intersectionPoints, PositionComponent other) {
+  void onCollisionStart(
+    Set<Vector2> intersectionPoints,
+    PositionComponent other,
+  ) {
     super.onCollisionStart(intersectionPoints, other);
     if (other is Brick) {
       if (hasShield) {
@@ -86,11 +92,10 @@ class Player extends PositionComponent
     } else if (other is Lava) {
       game.gameOver();
     } else if (other is SafeBrick) {
-      // Land on safe brick if coming from above
-      if (_velocityY >= 0 && position.y + size.y <= other.position.y + 15) {
-        position.y = other.position.y - size.y;
-        _velocityY = 0;
-        _isOnGround = true;
+      // Bounce on safe brick if falling
+      if (_velocityY > 0 && position.y <= other.position.y + 15) {
+        position.y = other.position.y;
+        _velocityY = _jumpForce; // Auto-jump
       }
     }
   }
@@ -98,9 +103,9 @@ class Player extends PositionComponent
   @override
   void update(double dt) {
     super.update(dt);
-    
+
     double targetAngle = 0.0;
-    
+
     if ((position.x - _lastX).abs() > 0.1) {
       isMoving = true;
       _animationTime += dt * 15;
@@ -109,7 +114,7 @@ class Player extends PositionComponent
       isMoving = false;
       _animationTime = 0.0;
     }
-    
+
     angle += (targetAngle - angle) * dt * 10;
     _lastX = position.x;
 
@@ -117,13 +122,6 @@ class Player extends PositionComponent
     if (game.currentMode == 'lava') {
       _velocityY += _gravity * dt;
       position.y += _velocityY * dt;
-
-      // Don't fall through the initial ground
-      if (position.y >= _groundY) {
-        position.y = _groundY;
-        _velocityY = 0;
-        _isOnGround = true;
-      }
     }
 
     // Near-miss detection: check all bricks within proximity
@@ -139,15 +137,11 @@ class Player extends PositionComponent
   }
 
   void jump() {
-    if (_isOnGround) {
-      _velocityY = _jumpForce;
-      _isOnGround = false;
-    }
+    // Kept for compatibility, but jump is now automatic
   }
 
   void resetJump() {
     _velocityY = 0;
-    _isOnGround = true;
   }
 
   @override
@@ -233,12 +227,16 @@ class Player extends PositionComponent
         ..color = Colors.lightBlueAccent.withValues(alpha: 0.4)
         ..style = PaintingStyle.fill;
       canvas.drawCircle(Offset(centerX, size.y / 2), size.y * 0.7, shieldPaint);
-      
+
       final shieldOutline = Paint()
         ..color = Colors.blueAccent
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.0;
-      canvas.drawCircle(Offset(centerX, size.y / 2), size.y * 0.7, shieldOutline);
+      canvas.drawCircle(
+        Offset(centerX, size.y / 2),
+        size.y * 0.7,
+        shieldOutline,
+      );
     }
   }
 }

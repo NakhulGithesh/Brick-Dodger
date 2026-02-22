@@ -21,9 +21,10 @@ class _MainMenuOverlayState extends State<MainMenuOverlay> {
   static const List<_ModeInfo> _modes = [
     _ModeInfo('CLASSIC', 'classic'),
     _ModeInfo('GRAVITY FLIP', 'gravity_flip'),
-    _ModeInfo('THE FLOOR IS LAVA', 'the_floor_is_lava'),
+    _ModeInfo('THE FLOOR IS LAVA', 'lava'),
     _ModeInfo('BULLET TIME', 'bullet_time'),
     _ModeInfo('SIZE MATTERS', 'size_matters'),
+    _ModeInfo('INVISIBLE BRICKS', 'invisible_bricks'),
   ];
 
   @override
@@ -115,19 +116,22 @@ class _MainMenuOverlayState extends State<MainMenuOverlay> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        ..._modes.map((mode) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: PixelButton(
-                label: mode.display,
-                color: const Color(0xFF78909C), // Blue-grey for mode buttons
-                onPressed: () {
-                  widget.game.startGame(mode.key);
-                },
-                fontSize: 10,
-                width: 260,
-                height: 44,
-              ),
-            )),
+        ..._modes.map(
+          (mode) => Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: PixelButton(
+              label: mode.display,
+              color: const Color(0xFF78909C), // Blue-grey for mode buttons
+              onPressed: () {
+                widget.game.pendingMode = mode.key;
+                widget.game.navigateTo('modeBriefing');
+              },
+              fontSize: 10,
+              width: 260,
+              height: 44,
+            ),
+          ),
+        ),
         const SizedBox(height: 6),
         PixelButton(
           label: 'BACK',

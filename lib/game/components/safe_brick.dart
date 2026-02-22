@@ -33,7 +33,9 @@ class SafeBrick extends PositionComponent
     super.update(dt);
     position.y += speed * game.slowMoMultiplier * dt;
 
-    if (position.y > game.size.y) {
+    // Clean up if it falls far below the camera
+    final cameraY = game.camera.viewfinder.position.y;
+    if (position.y > cameraY + game.size.y) {
       removeFromParent();
     }
   }
@@ -47,10 +49,7 @@ class SafeBrick extends PositionComponent
     canvas.drawRect(rect, _basePaint);
 
     // Top highlight strip
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, size.x, 4),
-      _highlightPaint,
-    );
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.x, 4), _highlightPaint);
 
     // Outline
     canvas.drawRect(rect, _outlinePaint);
